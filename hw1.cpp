@@ -55,6 +55,13 @@ struct Point
     double z;
 };
 
+struct Normal
+{
+    float x;
+    float y;
+    float z;
+};
+
 // spline struct 
 // contains how many control points the spline has, and an array of control points 
 struct Spline
@@ -80,12 +87,15 @@ glm::mat4 basis(-s, 2 * s, -s, 0,
 vector<float> vertices;
 float camera_u = 0;
 float step = 0.01;
-glm::vec3 arbitrary(1, 1, 1);
 
-vector<Point> T;
-vector<Point> N;
-vector<Point> B;
+vector<glm::vec3> POS;
+vector<glm::vec3> T;
+vector<glm::vec3> N;
+vector<glm::vec3> B;
+int trackIndex = 0;
+int threed = 0;
 
+int cameraIndex = 0;
 // IGNORE THIS IS JUST TO CREATE SCREENSHOTS
 int imageNum = 1;
 void saveScreenshot(const char* filename)
@@ -111,9 +121,11 @@ void displayFunc()
     matrix.LoadIdentity();
 
     //for (int i = 0 ; i < )
-    matrix.LookAt(0.0, 0.0, 3.0,
-        0.0, 0.0, 0.0,
-        0.0, 1.0, 0.0);
+    matrix.LookAt(
+        POS[cameraIndex].x + 0.5f * B[cameraIndex].x, POS[cameraIndex].y + 0.5f * B[cameraIndex].y, POS[cameraIndex].z + 0.5f * B[cameraIndex].z,
+        POS[cameraIndex].x + T[cameraIndex].x + 0.5f * B[cameraIndex].x, POS[cameraIndex].y + T[cameraIndex].y + 0.5f * B[cameraIndex].y, POS[cameraIndex].z + T[cameraIndex].z + 0.5f * B[cameraIndex].z,
+        B[cameraIndex].x, B[cameraIndex].y, B[cameraIndex].z
+    );
 
     // ORDER OF TRANSFORMATIONS MATTER
 
@@ -131,7 +143,7 @@ void displayFunc()
     pipelineProgram->SetProjectionMatrix(projectionMatrix);
 
     glBindVertexArray(splineVAO);
-    glDrawArrays(GL_LINES, 0, numVerticesSpline);
+    glDrawArrays(GL_LINE_STRIP, 0, numVerticesSpline);
     glBindVertexArray(0);
 
     glutSwapBuffers();
@@ -140,9 +152,15 @@ void displayFunc()
 void idleFunc()
 {
 
-    if (!done)
+    if (cameraIndex < T.size() - 1 && threed == 10)
     {
-
+        cameraIndex++;
+        threed = 0;
+        cout << "setting " << cameraIndex;
+    }
+    else if (cameraIndex < T.size() - 1)
+    {
+        threed++;
     }
     glutPostRedisplay();
 }
@@ -238,91 +256,193 @@ int loadSplines(char* argv)
 
 
 // RECURSIVE SUBDIVISION EXTRA CREDIT
-void subdivide(float u0, float u1, float maxlinelength, vector<float>& vertices, vector<float>& colors, glm::mat3x4& product)
-{
+//void subdivide(float u0, float u1, float maxlinelength, vector<float>& vertices, vector<float>& colors, glm::mat3x4& product)
+//{
+//
+//    float umid = (u0 + u1) / 2;
+//    glm::vec4 u0_vector(powf(u0, 3), powf(u0, 2), powf(u0, 1), 1);
+//    glm::vec4 u1_vector(powf(u1, 3), powf(u1, 2), powf(u1, 1), 1);
+//
+//    glm::vec3 vert0 = u0_vector * product;
+//    glm::vec3 vert1 = u1_vector * product;
+//
+//    if (glm::distance(vert0, vert1) > maxlinelength)
+//    {
+//        subdivide(u0, umid, maxlinelength, vertices, colors, product);
+//        subdivide(umid, u1, maxlinelength, vertices, colors, product);
+//    }
+//    else
+//    {
+//        vertices.push_back(vert0.x);
+//        vertices.push_back(vert0.y);
+//        vertices.push_back(vert0.z);
+//        for (int i = 0; i < 4; ++i)
+//        {
+//            colors.push_back(1.0);
+//        }
+//        glm::vec4 u1_vector(3 * powf(u1, 3), powf(u1, 2), powf(u1, 1), 1);
+//
+//
+//        vertices.push_back(vert1.x);
+//        vertices.push_back(vert1.y);
+//        vertices.push_back(vert1.z);
+//        for (int i = 0; i < 4; ++i)
+//        {
+//            colors.push_back(1.0);
+//        }
+//
+//    }
+//}
 
-    float umid = (u0 + u1) / 2;
-    glm::vec4 u0_vector(powf(u0, 3), powf(u0, 2), powf(u0, 1), 1);
-    glm::vec4 u1_vector(powf(u1, 3), powf(u1, 2), powf(u1, 1), 1);
+//void level1Recursive()
+//{
+//    vector<float> colors;
+//    for (int i = 0; i < numSplines; ++i)
+//    {
+//        Spline spl = splines[i];
+//        for (int j = 1; j < spl.numControlPoints - 2; ++j)
+//        {
+//            glm::mat3x4 control(spl.points[j - 1].x, spl.points[j].x, spl.points[j + 1].x, spl.points[j + 2].x,
+//                                spl.points[j - 1].y, spl.points[j].y, spl.points[j + 1].y, spl.points[j + 2].y,
+//                                spl.points[j - 1].z, spl.points[j].z, spl.points[j + 1].z, spl.points[j + 2].z);
+//
+//
+//            subdivide(0, 1, 0.01, vertices, colors, basis*control);
+//        }
+//    }
+//    for (int i = 0; i < 100; i++)
+//    {
+//        cout << vertices[i] << " ";
+//    }
+//
+//    glGenBuffers(1, &vertexPositionAndColorVBO);
+//    glBindBuffer(GL_ARRAY_BUFFER, vertexPositionAndColorVBO);
+//
+//    numVerticesSpline = vertices.size()/3;
+//    const int numBytesInPositions = vertices.size() * sizeof(float);
+//    const int numBytesInColors = colors.size() * sizeof(float);
+//    glBufferData(GL_ARRAY_BUFFER, numBytesInPositions + numBytesInColors, nullptr, GL_STATIC_DRAW);
+//    glBufferSubData(GL_ARRAY_BUFFER, 0, numBytesInPositions, vertices.data());
+//    glBufferSubData(GL_ARRAY_BUFFER, numBytesInPositions, numBytesInColors, colors.data());
+//
+//
+//    glGenVertexArrays(1, &splineVAO);
+//    glBindVertexArray(splineVAO);
+//    glBindBuffer(GL_ARRAY_BUFFER, vertexPositionAndColorVBO);
+//
+//    const GLuint locationOfPosition = glGetAttribLocation(pipelineProgram->GetProgramHandle(), "position");
+//    glEnableVertexAttribArray(locationOfPosition);
+//    const int stride = 0;
+//    const GLboolean normalized = GL_FALSE;
+//    glVertexAttribPointer(locationOfPosition, 3, GL_FLOAT, normalized, stride, (const void*)0);
+//
+//    const GLuint locationOfColor = glGetAttribLocation(pipelineProgram->GetProgramHandle(), "color");
+//    glEnableVertexAttribArray(locationOfColor);
+//    glVertexAttribPointer(locationOfColor, 4, GL_FLOAT, normalized, stride, (const void*)(unsigned long)numBytesInPositions);
+//}
 
-    glm::vec3 vert0 = u0_vector * product;
-    glm::vec3 vert1 = u1_vector * product;
-
-    if (glm::distance(vert0, vert1) > maxlinelength)
-    {
-        subdivide(u0, umid, maxlinelength, vertices, colors, product);
-        subdivide(umid, u1, maxlinelength, vertices, colors, product);
-    }
-    else
-    {
-        vertices.push_back(vert0.x);
-        vertices.push_back(vert0.y);
-        vertices.push_back(vert0.z);
-        for (int i = 0; i < 4; ++i)
-        {
-            colors.push_back(1.0);
-        }
-        glm::vec4 u1_vector(3 * powf(u1, 3), powf(u1, 2), powf(u1, 1), 1);
-
-
-        vertices.push_back(vert1.x);
-        vertices.push_back(vert1.y);
-        vertices.push_back(vert1.z);
-        for (int i = 0; i < 4; ++i)
-        {
-            colors.push_back(1.0);
-        }
-
-    }
-}
 
 void level1()
 {
+    vector<float> vertices;
     vector<float> colors;
-    for (int i = 0; i < numSplines; ++i)
-    {
-        Spline spl = splines[i];
-        for (int j = 1; j < spl.numControlPoints - 2; ++j)
+        for (int i = 0; i < numSplines; ++i)
         {
-            glm::mat3x4 control(spl.points[j - 1].x, spl.points[j].x, spl.points[j + 1].x, spl.points[j + 2].x,
-                                spl.points[j - 1].y, spl.points[j].y, spl.points[j + 1].y, spl.points[j + 2].y,
-                                spl.points[j - 1].z, spl.points[j].z, spl.points[j + 1].z, spl.points[j + 2].z);
+            Spline spl = splines[i];
+            for (int j = 1; j < spl.numControlPoints - 2; ++j)
+            {
+                glm::mat3x4 control(spl.points[j - 1].x, spl.points[j].x, spl.points[j + 1].x, spl.points[j + 2].x,
+                                    spl.points[j - 1].y, spl.points[j].y, spl.points[j + 1].y, spl.points[j + 2].y,
+                                    spl.points[j - 1].z, spl.points[j].z, spl.points[j + 1].z, spl.points[j + 2].z);
+                
+                for (float u = 0; u < 1.0; u += 0.01f)
+                {
+                    glm::vec4 u0_vector(powf(u, 3), powf(u, 2), powf(u, 1), 1);
+                    glm::vec4 t0_vector(powf(u, 2) * 3, 2 * u, 1, 0);
 
+                    glm::mat3x4 product = (basis * control);
+                    glm::vec3 vert0 = u0_vector * (product);
+                    glm::vec3 tang0 = t0_vector * product;
 
-            subdivide(0, 1, 0.01, vertices, colors, basis*control);
+                    vertices.push_back(vert0.x);
+                    vertices.push_back(vert0.y);
+                    vertices.push_back(vert0.z);
+                    POS.push_back(vert0);
+                    for (int i = 0; i < 4; ++i)
+                    {
+                        colors.push_back(1.0);
+                    }
+                    if (!T.size())
+                    {
+                        glm::vec3 arbitrary = glm::normalize(glm::vec3( .5, 2, 0.8 ));
+                        T.push_back(glm::normalize(tang0));
+                        glm::vec3 norm = glm::normalize(glm::cross(tang0, arbitrary));
+                        N.push_back(norm);
+                        B.push_back(glm::normalize(glm::cross(tang0, norm)));
+                        trackIndex++;
+                    }
+                    else
+                    {
+                        T.push_back(glm::normalize(tang0));
+                        glm::vec3 norm = glm::normalize(glm::cross(B[trackIndex - 1], tang0));
+                        N.push_back(norm);
+                        B.push_back(glm::normalize(glm::cross(tang0, norm)));
+                    }
+                }
+
+                glGenBuffers(1, &vertexPositionAndColorVBO);
+                glBindBuffer(GL_ARRAY_BUFFER, vertexPositionAndColorVBO);
+                
+                numVerticesSpline = vertices.size()/3;
+                const int numBytesInPositions = vertices.size() * sizeof(float);
+                const int numBytesInColors = colors.size() * sizeof(float);
+                glBufferData(GL_ARRAY_BUFFER, numBytesInPositions + numBytesInColors, nullptr, GL_STATIC_DRAW);
+                glBufferSubData(GL_ARRAY_BUFFER, 0, numBytesInPositions, vertices.data());
+                glBufferSubData(GL_ARRAY_BUFFER, numBytesInPositions, numBytesInColors, colors.data());
+                
+                
+                glGenVertexArrays(1, &splineVAO);
+                glBindVertexArray(splineVAO);
+                glBindBuffer(GL_ARRAY_BUFFER, vertexPositionAndColorVBO);
+                
+                const GLuint locationOfPosition = glGetAttribLocation(pipelineProgram->GetProgramHandle(), "position");
+                glEnableVertexAttribArray(locationOfPosition);
+                const int stride = 0;
+                const GLboolean normalized = GL_FALSE;
+                glVertexAttribPointer(locationOfPosition, 3, GL_FLOAT, normalized, stride, (const void*)0);
+                
+                const GLuint locationOfColor = glGetAttribLocation(pipelineProgram->GetProgramHandle(), "color");
+                glEnableVertexAttribArray(locationOfColor);
+                glVertexAttribPointer(locationOfColor, 4, GL_FLOAT, normalized, stride, (const void*)(unsigned long)numBytesInPositions);
+            }
         }
-    }
-    for (int i = 0; i < 100; i++)
-    {
-        cout << vertices[i] << " ";
-    }
-
-    glGenBuffers(1, &vertexPositionAndColorVBO);
-    glBindBuffer(GL_ARRAY_BUFFER, vertexPositionAndColorVBO);
-
-    numVerticesSpline = vertices.size()/3;
-    const int numBytesInPositions = vertices.size() * sizeof(float);
-    const int numBytesInColors = colors.size() * sizeof(float);
-    glBufferData(GL_ARRAY_BUFFER, numBytesInPositions + numBytesInColors, nullptr, GL_STATIC_DRAW);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, numBytesInPositions, vertices.data());
-    glBufferSubData(GL_ARRAY_BUFFER, numBytesInPositions, numBytesInColors, colors.data());
-
-
-    glGenVertexArrays(1, &splineVAO);
-    glBindVertexArray(splineVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, vertexPositionAndColorVBO);
-
-    const GLuint locationOfPosition = glGetAttribLocation(pipelineProgram->GetProgramHandle(), "position");
-    glEnableVertexAttribArray(locationOfPosition);
-    const int stride = 0;
-    const GLboolean normalized = GL_FALSE;
-    glVertexAttribPointer(locationOfPosition, 3, GL_FLOAT, normalized, stride, (const void*)0);
-
-    const GLuint locationOfColor = glGetAttribLocation(pipelineProgram->GetProgramHandle(), "color");
-    glEnableVertexAttribArray(locationOfColor);
-    glVertexAttribPointer(locationOfColor, 4, GL_FLOAT, normalized, stride, (const void*)(unsigned long)numBytesInPositions);
+        cout << vertices.size() << " " << T.size() << " " << B.size() << endl;
 }
 
+glm::vec3 getVertex(const glm::vec3& pos, const glm::vec3& norm, const glm::vec3& bino)
+{
+    return pos + 0.02f * norm + 0.02f * bino;
+}
+void level3()
+{
+    glm::vec3 v0, v1, v2, v3, v4, v5, v6, v7;
+    
+    for (int i = 0; i < POS.size(); ++i)
+    {
+        v0 = getVertex(POS[i], -1.0f * N[i], B[i]);
+        v1 = getVertex(POS[i], N[i], B[i]);
+        v2 = getVertex(POS[i], N[i], -1.0f*B[i]);
+        v3 = getVertex(POS[i], -1.0f * N[i], -1.0f*B[i]);
+
+        i++;
+        v4 = getVertex(POS[i], -1.0f * N[i], B[i]);
+        v5 = getVertex(POS[i], N[i], B[i]);
+        v6 = getVertex(POS[i], N[i], -1.0f * B[i]);
+        v7 = getVertex(POS[i], -1.0f * N[i], -1.0f * B[i]);
+        i--;
+
+    }
+}
 
 void initScene(int argc, char* argv[])
 {

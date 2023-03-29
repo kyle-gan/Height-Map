@@ -64,7 +64,7 @@
     <None Include="..\openGLHelper-starterCode\basic.vertexShader.glsl">
       <Filter>shaders</Filter>
     </None>
-    <None Include="textureShader.glsl">
+    <None Include="textureShaders\texutreShader.glsl">
       <Filter>shaders</Filter>
     </None>
   </ItemGroup>
